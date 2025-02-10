@@ -18,6 +18,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"runtime/debug"
 	"strconv"
 	"strings"
 	"sync"
@@ -26,6 +27,7 @@ import (
 	"github.com/dolthub/go-mysql-server/sql"
 	sqltypes "github.com/dolthub/go-mysql-server/sql/types"
 	"github.com/shopspring/decimal"
+	"github.com/sirupsen/logrus"
 
 	"github.com/dolthub/dolt/go/cmd/dolt/cli"
 	"github.com/dolthub/dolt/go/libraries/doltcore/branch_control"
@@ -1194,6 +1196,7 @@ func (d *DoltSession) setHeadRefSessionVar(ctx *sql.Context, db, value string) e
 	}
 	err = d.SwitchWorkingSet(ctx, db, ws)
 	if errors.Is(err, doltdb.ErrWorkingSetNotFound) {
+		logrus.Errorf("Returning ErrBranchNotFound-based error from DoltSession.setHeadRefSessionVar: %s", debug.Stack())
 		return fmt.Errorf("%w; %s: '%s'", doltdb.ErrBranchNotFound, err, value)
 	}
 	return err

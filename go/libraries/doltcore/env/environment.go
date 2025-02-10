@@ -20,9 +20,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime/debug"
 	"strings"
 	"time"
 
+	"github.com/sirupsen/logrus"
 	goerrors "gopkg.in/src-d/go-errors.v1"
 
 	"github.com/dolthub/dolt/go/cmd/dolt/doltversion"
@@ -1118,6 +1120,7 @@ func (dEnv *DoltEnv) FindRef(ctx context.Context, refStr string) (ref.DoltRef, e
 		}
 	}
 
+	logrus.Errorf("Returning ErrBranchNotFound from DoltEnv.FindRef for ref '%s': %s", refStr, debug.Stack())
 	return nil, doltdb.ErrBranchNotFound
 }
 

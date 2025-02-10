@@ -19,11 +19,13 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"runtime/debug"
 	"sort"
 	"strings"
 	"sync"
 
 	"github.com/dolthub/go-mysql-server/sql"
+	"github.com/sirupsen/logrus"
 
 	"github.com/dolthub/dolt/go/cmd/dolt/cli"
 	"github.com/dolthub/dolt/go/libraries/doltcore/dbfactory"
@@ -1095,6 +1097,7 @@ func initialDbState(ctx context.Context, db dsess.SqlDatabase, branch string) (d
 
 	headCommit, err := ddb.ResolveCommitRef(ctx, r)
 	if err == doltdb.ErrBranchNotFound {
+		logrus.Errorf("Receieved ErrBranchNotFound from ddb.ResolveCommitRef in initialDbState (branch='%s'): %s", branch, debug.Stack())
 		retainedErr = err
 		err = nil
 	}

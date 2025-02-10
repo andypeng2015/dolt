@@ -22,6 +22,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime/debug"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -300,6 +301,7 @@ func (ddb *DoltDB) GetHashForRefStrByNomsRoot(ctx context.Context, ref string, n
 // hashOfCommit returns the hash of the commit at the head of the dataset provided
 func hashOfCommit(ds datas.Dataset, ref string) (*hash.Hash, error) {
 	if !ds.HasHead() {
+		logrus.Errorf("ErrBranchNotFound returned from hashOfCommit for ref '%s': %s", ref, debug.Stack())
 		return nil, ErrBranchNotFound
 	}
 
@@ -422,6 +424,7 @@ func (ddb *DoltDB) getHashFromCommitSpec(ctx context.Context, cs *CommitSpec, cw
 				return nil, err
 			}
 		}
+		logrus.Errorf("Returning ErrBranchNotFound from DoltDB.getHashFromCommitSpec for branch '%s': %s", cs.baseSpec, debug.Stack())
 		return nil, fmt.Errorf("%w: %s", ErrBranchNotFound, cs.baseSpec)
 	case headCommitSpec:
 		if cwb == nil {
@@ -1368,6 +1371,7 @@ func (ddb *DoltDB) deleteRef(ctx context.Context, dref ref.DoltRef, replicationS
 	}
 
 	if !ds.HasHead() {
+		logrus.Errorf("Returning ErrBranchNotFound from DoltDB.deleteRef for ref '%s': %s", dref.String(), debug.Stack())
 		return ErrBranchNotFound
 	}
 

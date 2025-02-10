@@ -17,8 +17,10 @@ package dprocedures
 import (
 	"errors"
 	"fmt"
+	"runtime/debug"
 
 	"github.com/dolthub/go-mysql-server/sql"
+	"github.com/sirupsen/logrus"
 
 	"github.com/dolthub/dolt/go/libraries/doltcore/doltdb"
 	"github.com/dolthub/dolt/go/libraries/doltcore/env"
@@ -48,6 +50,7 @@ func MoveWorkingSetToBranch(ctx *sql.Context, brName string, force bool, isNewBr
 		return err
 	}
 	if !hasRef {
+		logrus.Errorf("ErrBranchNotFound encountered in MoveWorkingSetToBranch for branch '%s': %s", brName, debug.Stack())
 		return doltdb.ErrBranchNotFound
 	}
 
