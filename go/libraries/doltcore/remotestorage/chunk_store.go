@@ -1060,10 +1060,7 @@ func (dcs *DoltChunkStore) WriteTableFile(ctx context.Context, fileId string, nu
 }
 
 // AddTableFilesToManifest adds table files to the manifest
-//
-// GetAddrsCurry here is unused, because the remote is responsible for
-// any reference checking, not the remotestorage instance.
-func (dcs *DoltChunkStore) AddTableFilesToManifest(ctx context.Context, fileIdToNumChunks map[string]int, _ chunks.GetAddrsCurry) error {
+func (dcs *DoltChunkStore) AddTableFilesToManifest(ctx context.Context, fileIdToNumChunks map[string]int) error {
 	chnkTblInfo := make([]*remotesapi.ChunkTableInfo, 0, len(fileIdToNumChunks))
 
 	debugStr := ""

@@ -17,6 +17,7 @@ package nbs
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -195,7 +196,7 @@ func trueUpBackingManifest(ctx context.Context, root hash.Hash, backing *journal
 	if err != nil {
 		return manifestContents{}, err
 	} else if !ok {
-		return manifestContents{}, nil
+		return manifestContents{}, fmt.Errorf("manifest not found when opening chunk journal")
 	}
 
 	// set our in-memory root to match the journal
@@ -443,7 +444,7 @@ func (j *ChunkJournal) dropJournalWriter(ctx context.Context) error {
 
 // ParseIfExists implements manifest.
 func (j *ChunkJournal) ParseIfExists(ctx context.Context, stats *Stats, readHook func() error) (ok bool, mc manifestContents, err error) {
-	if j.wr == nil || j.contents.root.IsEmpty() {
+	if j.wr == nil {
 		// parse contents from |j.backing| if the journal is not initialized
 		return j.backing.ParseIfExists(ctx, stats, readHook)
 	}
