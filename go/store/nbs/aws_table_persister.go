@@ -111,8 +111,15 @@ func (s3p awsTablePersister) Open(ctx context.Context, name hash.Hash, chunkCoun
 
 func (s3p awsTablePersister) Exists(ctx context.Context, name string, _ uint32, stats *Stats) (bool, error) {
 	s3or := &s3ObjectReader{s3: s3p.s3, bucket: s3p.bucket, readRl: s3p.rl, ns: s3p.ns}
-
-	return s3or.objectExistsInChunkSource(ctx, name, stats)
+	magic := make([]byte, magicNumberSize)
+	n, _, err := s3or.ReadFromEnd(ctx, name, magic, stats)
+	if err != nil {
+		return false, err
+	}
+	if n != len(magic) {
+		return false, errors.New("failed to read all data")
+	}
+	return bytes.Equal(magic, []byte(magicNumber)), nil
 }
 
 func (s3p awsTablePersister) CopyTableFile(ctx context.Context, r io.Reader, fileId string, fileSz uint64, chunkCount uint32) error {
@@ -158,7 +165,7 @@ func (s3p awsTablePersister) Persist(ctx context.Context, mt *memTable, haver ch
 		return emptyChunkSource{}, gcBehavior_Continue, err
 	}
 
-	tra := &s3TableReaderAt{&s3ObjectReader{s3: s3p.s3, bucket: s3p.bucket, readRl: s3p.rl, ns: s3p.ns}, name}
+	tra := &s3TableReaderAt{&s3ObjectReader{s3: s3p.s3, bucket: s3p.bucket, readRl: s3p.rl, ns: s3p.ns}, name.String()}
 	src, err := newReaderFromIndexData(ctx, s3p.q, data, name, tra, s3BlockSize)
 	if err != nil {
 		return emptyChunkSource{}, gcBehavior_Continue, err
@@ -253,7 +260,7 @@ func (s3p awsTablePersister) ConjoinAll(ctx context.Context, sources chunkSource
 
 	verbose.Logger(ctx).Sugar().Debugf("Compacted table of %d Kb in %s", plan.totalCompressedData/1024, time.Since(t1))
 
-	tra := &s3TableReaderAt{&s3ObjectReader{s3: s3p.s3, bucket: s3p.bucket, readRl: s3p.rl, ns: s3p.ns}, name}
+	tra := &s3TableReaderAt{&s3ObjectReader{s3: s3p.s3, bucket: s3p.bucket, readRl: s3p.rl, ns: s3p.ns}, name.String()}
 	cs, err := newReaderFromIndexData(ctx, s3p.q, plan.mergedIndex, name, tra, s3BlockSize)
 	return cs, func() {}, err
 }
@@ -487,7 +494,7 @@ func splitOnMaxSize(dataLen, maxPartSize uint64) []int64 {
 func (s3p awsTablePersister) uploadPartCopy(ctx context.Context, src string, srcStart, srcEnd int64, key, uploadID string, partNum int64) (etag string, err error) {
 	res, err := s3p.s3.UploadPartCopyWithContext(ctx, &s3.UploadPartCopyInput{
 		CopySource:      aws.String(url.PathEscape(s3p.bucket + "/" + s3p.key(src))),
-		CopySourceRange: aws.String(httpRangeHeader(srcStart, srcEnd)),
+		CopySourceRange: aws.String(s3RangeHeader(srcStart, srcEnd)),
 		Bucket:          aws.String(s3p.bucket),
 		Key:             aws.String(s3p.key(key)),
 		PartNumber:      aws.Int64(int64(partNum)),
